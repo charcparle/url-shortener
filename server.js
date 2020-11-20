@@ -6,6 +6,12 @@ const app = express();
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
+// Request Logger
+app.use((req,res,next)=>{
+  console.log(req.method+" "+req.path+" - "+req.ip);
+  next();
+})
+
 app.use(cors());
 
 app.use('/public', express.static(`${process.cwd()}/public`));
@@ -22,3 +28,5 @@ app.get('/api/hello', function(req, res) {
 app.listen(port, function() {
   console.log(`Listening on port ${port}`);
 });
+
+
