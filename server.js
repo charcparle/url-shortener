@@ -56,7 +56,8 @@ const urlSchema = new Schema({
 let Link = mongoose.model('Link', urlSchema);
 console.log(Link);
 
-// Mongoose fn to check whether URL is duplicated
+// Mongoose fn to find Link
+//https://stackoverflow.com/questions/24035872/return-results-mongoose-in-find-query-to-a-variable
 const findShortURL = (original) => {
   let query =Link.find({original: original},(err, linkFound)=>{
     console.log(`linkFound.length: ${linkFound.length}`);
@@ -74,13 +75,14 @@ const findShortURL = (original) => {
   return query;
 }
 
-//https://stackoverflow.com/questions/24035872/return-results-mongoose-in-find-query-to-a-variable
 
-const regex=/^https*:\/\//;
-const string = "https://gmail.com/http://";
-console.log(string.match(regex));
-console.log(string.replace(regex,''))
+
 // Capture the POST URL action, create & save
+const regex=/^https*:\/\//;
+//const string = "https://gmail.com/http://";
+//console.log(string.match(regex));
+//console.log(string.replace(regex,''))
+
 app.post("/api/shorturl/new",(req,res)=>{
   let capture = req.body.url.replace(regex,'');
   console.log(`capture: ${capture}`)
@@ -99,14 +101,22 @@ app.post("/api/shorturl/new",(req,res)=>{
         if (err) return console.error(err);
         if (linkFound.length==0){
           console.log(`None found, linkFound inside query of app.post: ${linkFound}`);
-          let newLink = new Link({
-            original: req.body.url,
-            short: Math.random()
-          })
-          newLink.save((err=>{
+          let linkMaxShort = Link.find().sort({short:-1}).limit(1);
+          linkMaxShort.exec((err,linkLatest)=>{
+            console.log(`linkLatest: ${linkLatest}`)
             if (err) return console.error(err);
-          }));
-          res.json({original_url: req.body.url, short_url: newLink.short});
+            let currentCount = 0;
+            if (linkLatest.length>0) {currentCount = linkLatest[0].short;}
+            console.log(`currentCount: ${currentCount}`)
+            let newLink = new Link({
+              original: req.body.url,
+              short: currentCount + 1
+            });
+            newLink.save((err=>{
+              if (err) return console.error(err);
+            }));
+            res.json({original_url: req.body.url, short_url: newLink.short});
+          });
         } else {
           console.log(`Matched, linkFound inside query of app.post: ${linkFound}`);
           console.log(`linkFound[0].short: ${linkFound[0].short}`);
@@ -115,4 +125,21 @@ app.post("/api/shorturl/new",(req,res)=>{
       });
     }
   }); 
+});
+
+// Redirect URL
+app.get("/api/shorturl/:short_url",(req,res)=>{
+  console.log(`req.params.short_url: ${req.params.short_url}`);
+  let lookupLongURL = Link.find({short: req.params.short_url}, (err)=>{
+    if (err) return console.error(err)
+  });
+  lookupLongURL.exec((err, linkFound)=>{
+    console.log(`linkFound: ${linkFound}`);
+    if (err) return console.error(err);
+    if (linkFound.length==0){
+      res.send("Incorrect reference")
+    } else {
+      res.redirect(linkFound[0].original);
+    }
+  });
 });
