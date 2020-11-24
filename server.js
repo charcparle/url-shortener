@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const dns = require('dns');
 
 // Basic Configuration
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3000;
 app.listen(port, function() {
   console.log(`Listening on port ${port}`);
 });
@@ -31,7 +31,7 @@ mongoose.connect(process.env.DB_URI, { useNewUrlParser: true, useUnifiedTopology
 
 
 // Handle CORS
-app.use(cors());
+app.use(cors({optionsSuccessStatus: 200}));
 
 // Serve static files
 app.use('/public', express.static(`${process.cwd()}/public`));
@@ -79,17 +79,16 @@ const findShortURL = (original) => {
 
 // Capture the POST URL action, create & save
 const regex=/^https*:\/\//;
-//const string = "https://gmail.com/http://";
-//console.log(string.match(regex));
-//console.log(string.replace(regex,''))
+const follow = /\/\S+/
 
 app.post("/api/shorturl/new",(req,res)=>{
-  let capture = req.body.url.replace(regex,'');
+  console.log(`user input: ${req.body.url}`)
+  let capture = req.body.url.replace(regex,'').replace(follow,'');
   console.log(`capture: ${capture}`)
   dns.lookup(capture,(err,address,family)=>{
     if (err) {
       console.log(err);
-      res.json({error: 'Invalid hostname'});
+      res.json({error: 'Invalid url'});
     } else if (req.body.url.match(regex)==null) {
       console.log(`req.body.url.match(regex): ${req.body.url.match(regex)}`);
       console.log("url should starts with http or https");
