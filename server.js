@@ -85,11 +85,12 @@ app.post("/api/shorturl/new",(req,res)=>{
   console.log(`user input: ${req.body.url}`)
   let capture = req.body.url.replace(regex,'').replace(follow,'');
   console.log(`capture: ${capture}`)
-  dns.lookup(capture,(err,address,family)=>{
+  
+  dns.lookup(capture,(err,address,family)=>{ //dns.lookup to check hostname
     if (err) {
       console.log(err);
       res.json({error: 'Invalid url'});
-    } else if (req.body.url.match(regex)==null) {
+    } else if (req.body.url.match(regex)==null) { //address should start with http or https
       console.log(`req.body.url.match(regex): ${req.body.url.match(regex)}`);
       console.log("url should starts with http or https");
       res.json({error: 'Invalid url'});
@@ -98,13 +99,13 @@ app.post("/api/shorturl/new",(req,res)=>{
       let query = findShortURL(req.body.url);
       query.exec((err,linkFound)=>{
         if (err) return console.error(err);
-        if (linkFound.length==0){
+        if (linkFound.length==0){ // new entry
           console.log(`None found, linkFound inside query of app.post: ${linkFound}`);
-          let linkMaxShort = Link.find().sort({short:-1}).limit(1);
+          let linkMaxShort = Link.find().sort({short:-1}).limit(1); // finding the document with largest value of 'short'
           linkMaxShort.exec((err,linkLatest)=>{
             console.log(`linkLatest: ${linkLatest}`)
             if (err) return console.error(err);
-            let currentCount = 0;
+            let currentCount = 0; // for a blank db
             if (linkLatest.length>0) {currentCount = linkLatest[0].short;}
             console.log(`currentCount: ${currentCount}`)
             let newLink = new Link({
@@ -116,7 +117,7 @@ app.post("/api/shorturl/new",(req,res)=>{
             }));
             res.json({original_url: req.body.url, short_url: newLink.short});
           });
-        } else {
+        } else { // duplicated entry
           console.log(`Matched, linkFound inside query of app.post: ${linkFound}`);
           console.log(`linkFound[0].short: ${linkFound[0].short}`);
           res.json({original_url: req.body.url, short_url: linkFound[0].short});
